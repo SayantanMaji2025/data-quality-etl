@@ -1,0 +1,9 @@
+source_name,duplicate_key
+customers,customer_id
+order_items,order_id|order_item_id
+order_payments,order_id|payment_sequential
+order_reviews,order_id|review_id
+orders,order_id
+products,product_id
+sellers,seller_id
+product_category_translation,product_category_name

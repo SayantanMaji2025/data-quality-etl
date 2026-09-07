@@ -1,0 +1,9 @@
+source_name,file_name,duplicate_key,total_records,duplicate_records,duplicate_groups,duplicate_valid
+customers,olist_customers_dataset.csv,customer_id,99441,0,0,True
+order_items,olist_order_items_dataset.csv,order_id|order_item_id,112650,0,0,True
+order_payments,olist_order_payments_dataset.csv,order_id|payment_sequential,103886,0,0,True
+order_reviews,olist_order_reviews_dataset.csv,order_id|review_id,99224,0,0,True
+orders,olist_orders_dataset.csv,order_id,99441,0,0,True
+products,olist_products_dataset.csv,product_id,32951,0,0,True
+sellers,olist_sellers_dataset.csv,seller_id,3095,0,0,True
+product_category_translation,product_category_name_translation.csv,product_category_name,71,0,0,True

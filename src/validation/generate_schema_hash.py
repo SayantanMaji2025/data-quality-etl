@@ -4,9 +4,7 @@ from pathlib import Path
 
 
 DATASET_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\dataset")
-MANIFEST_PATH = Path(
-    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv"
-)
+MANIFEST_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv")
 
 
 def calculate_schema_hash(columns):
