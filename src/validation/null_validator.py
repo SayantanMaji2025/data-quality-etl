@@ -108,5 +108,6 @@ def main():
     print("\nNull validation report created.")
 
 
+
 if __name__ == "__main__":
     main()

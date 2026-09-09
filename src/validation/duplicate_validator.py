@@ -173,5 +173,6 @@ def main():
     print("\nDuplicate validation report created.")
 
 
+
 if __name__ == "__main__":
     main()
