@@ -2,9 +2,17 @@ import pandas as pd
 from pathlib import Path
 
 
-DATASET_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\dataset")
+DATASET_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\dataset"
+)
 
-MANIFEST_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv")
+MANIFEST_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv"
+)
+
+ERROR_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\data\errors\null"
+)
 
 
 def main():
@@ -34,13 +42,40 @@ def main():
 
         for column_name in df.columns:
 
-            null_count = df[column_name].isna().sum()
+            null_mask = df[column_name].isna()
+
+            null_count = null_mask.sum()
 
             null_percentage = (
                 (null_count / total_records) * 100
                 if total_records > 0
                 else 0
             )
+
+            # -------------------------------------------------
+            # Extract records containing null values
+            # -------------------------------------------------
+
+            if null_count > 0:
+
+                ERROR_PATH.mkdir(
+                    parents=True,
+                    exist_ok=True
+                )
+
+                error_file = (
+                    ERROR_PATH
+                    / f"{source_name}_{column_name}.csv"
+                )
+
+                df.loc[null_mask].to_csv(
+                    error_file,
+                    index=False
+                )
+
+                print(
+                    f"Null records written: {error_file}"
+                )
 
             results.append({
                 "source_name": source_name,
@@ -60,7 +95,10 @@ def main():
     output = pd.DataFrame(results)
 
     output_path = Path("metadata")
-    output_path.mkdir(exist_ok=True)
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     output.to_csv(
         output_path / "null_validation.csv",

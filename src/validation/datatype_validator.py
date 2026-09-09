@@ -2,7 +2,9 @@ import pandas as pd
 from pathlib import Path
 
 
-DATASET_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\dataset")
+DATASET_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\dataset"
+)
 
 MANIFEST_PATH = Path(
     r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv"
@@ -12,6 +14,10 @@ SCHEMA_CONFIG_PATH = Path(
     r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\schema_config.csv"
 )
 
+ERROR_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\data\errors\datatype"
+)
+
 
 def validate_column_dtype(series, expected_dtype):
 
@@ -19,7 +25,13 @@ def validate_column_dtype(series, expected_dtype):
     non_null_values = series.dropna()
 
     if expected_dtype == "string":
-        return True, 0
+
+        invalid_mask = pd.Series(
+            False,
+            index=non_null_values.index
+        )
+
+        return True, invalid_mask, 0
 
     if expected_dtype == "integer":
 
@@ -28,11 +40,18 @@ def validate_column_dtype(series, expected_dtype):
             errors="coerce"
         )
 
-        invalid_mask = converted.isna() | (converted % 1 != 0)
+        invalid_mask = (
+            converted.isna()
+            | (converted % 1 != 0)
+        )
 
         invalid_count = invalid_mask.sum()
 
-        return invalid_count == 0, invalid_count
+        return (
+            invalid_count == 0,
+            invalid_mask,
+            invalid_count
+        )
 
     if expected_dtype == "float":
 
@@ -41,9 +60,15 @@ def validate_column_dtype(series, expected_dtype):
             errors="coerce"
         )
 
-        invalid_count = converted.isna().sum()
+        invalid_mask = converted.isna()
 
-        return invalid_count == 0, invalid_count
+        invalid_count = invalid_mask.sum()
+
+        return (
+            invalid_count == 0,
+            invalid_mask,
+            invalid_count
+        )
 
     if expected_dtype == "datetime":
 
@@ -52,18 +77,37 @@ def validate_column_dtype(series, expected_dtype):
             errors="coerce"
         )
 
-        invalid_count = converted.isna().sum()
+        invalid_mask = converted.isna()
 
-        return invalid_count == 0, invalid_count
+        invalid_count = invalid_mask.sum()
 
-    return False, len(non_null_values)
+        return (
+            invalid_count == 0,
+            invalid_mask,
+            invalid_count
+        )
+
+    invalid_mask = pd.Series(
+        True,
+        index=non_null_values.index
+    )
+
+    return (
+        False,
+        invalid_mask,
+        len(non_null_values)
+    )
 
 
 def main():
 
-    manifest = pd.read_csv(MANIFEST_PATH)
+    manifest = pd.read_csv(
+        MANIFEST_PATH
+    )
 
-    schema_config = pd.read_csv(SCHEMA_CONFIG_PATH)
+    schema_config = pd.read_csv(
+        SCHEMA_CONFIG_PATH
+    )
 
     results = []
 
@@ -76,7 +120,6 @@ def main():
 
         print(f"\n{source_name}")
         print("-" * 80)
-        schema_config = pd.read_csv(SCHEMA_CONFIG_PATH)
 
         if not file_path.exists():
 
@@ -114,10 +157,37 @@ def main():
 
                 continue
 
-            valid, invalid_count = validate_column_dtype(
-                df[column_name],
-                expected_dtype
+            valid, invalid_mask, invalid_count = (
+                validate_column_dtype(
+                    df[column_name],
+                    expected_dtype
+                )
             )
+
+            # -------------------------------------------------
+            # Extract invalid records
+            # -------------------------------------------------
+
+            if invalid_count > 0:
+
+                ERROR_PATH.mkdir(
+                    parents=True,
+                    exist_ok=True
+                )
+
+                error_file = (
+                    ERROR_PATH
+                    / f"{source_name}_{column_name}.csv"
+                )
+
+                df.loc[invalid_mask].to_csv(
+                    error_file,
+                    index=False
+                )
+
+                print(
+                    f"Error records written: {error_file}"
+                )
 
             results.append({
                 "source_name": source_name,
@@ -138,7 +208,10 @@ def main():
     output = pd.DataFrame(results)
 
     output_path = Path("metadata")
-    output_path.mkdir(exist_ok=True)
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     output.to_csv(
         output_path / "datatype_validation.csv",

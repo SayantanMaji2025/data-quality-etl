@@ -2,11 +2,21 @@ import pandas as pd
 from pathlib import Path
 
 
-DATASET_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\dataset")
+DATASET_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\dataset"
+)
 
-MANIFEST_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv")
+MANIFEST_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv"
+)
 
-DUPLICATE_CONFIG_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\duplicate_config.csv")
+DUPLICATE_CONFIG_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\duplicate_config.csv"
+)
+
+ERROR_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\data\errors\duplicate"
+)
 
 
 def main():
@@ -31,94 +41,129 @@ def main():
             print("File not found")
             continue
 
-        df = pd.read_csv(file_path)
+        # -----------------------------------------------------
+        # Find duplicate configuration for this source
+        # -----------------------------------------------------
 
-        config = duplicate_config[
+        source_config = duplicate_config[
             duplicate_config["source_name"] == source_name
         ]
 
-        if config.empty:
-
-            print("No duplicate rule configured")
+        # No duplicate rule configured for this source
+        if source_config.empty:
             continue
 
-        duplicate_key = config.iloc[0]["duplicate_key"]
+        df = pd.read_csv(file_path)
 
-        key_columns = duplicate_key.split("|")
+        total_records = len(df)
 
-        missing_columns = [
-            column
-            for column in key_columns
-            if column not in df.columns
-        ]
+        for _, config_row in source_config.iterrows():
 
-        if missing_columns:
+            duplicate_key = config_row["duplicate_key"]
 
-            print(
-                f"Key columns not found: {missing_columns}"
+            duplicate_columns = duplicate_key.split("|")
+
+            # -------------------------------------------------
+            # Validate configured columns exist
+            # -------------------------------------------------
+
+            missing_columns = [
+                column
+                for column in duplicate_columns
+                if column not in df.columns
+            ]
+
+            if missing_columns:
+
+                print(
+                    f"{duplicate_key:<35}"
+                    f"Status: COLUMN NOT FOUND"
+                )
+
+                results.append({
+                    "source_name": source_name,
+                    "file_name": file_name,
+                    "duplicate_key": duplicate_key,
+                    "total_records": total_records,
+                    "duplicate_records": "COLUMN_NOT_FOUND",
+                    "duplicate_groups": "COLUMN_NOT_FOUND",
+                    "duplicate_valid": False
+                })
+
+                continue
+
+            # -------------------------------------------------
+            # Find all records belonging to duplicate groups
+            # -------------------------------------------------
+
+            duplicate_mask = df.duplicated(
+                subset=duplicate_columns,
+                keep=False
             )
+
+            duplicate_records = duplicate_mask.sum()
+
+            duplicate_groups = (
+                df.loc[duplicate_mask, duplicate_columns]
+                .drop_duplicates()
+                .shape[0]
+            )
+
+            duplicate_valid = duplicate_records == 0
+
+            # -------------------------------------------------
+            # Extract duplicate records
+            # -------------------------------------------------
+
+            if duplicate_records > 0:
+
+                ERROR_PATH.mkdir(
+                    parents=True,
+                    exist_ok=True
+                )
+
+                error_file = (
+                    ERROR_PATH
+                    / f"{source_name}_{duplicate_key.replace('|', '_')}.csv"
+                )
+
+                df.loc[duplicate_mask].to_csv(
+                    error_file,
+                    index=False
+                )
+
+                print(
+                    f"Duplicate records written: {error_file}"
+                )
 
             results.append({
                 "source_name": source_name,
                 "file_name": file_name,
                 "duplicate_key": duplicate_key,
-                "total_records": len(df),
-                "duplicate_records": None,
-                "duplicate_groups": None,
-                "duplicate_valid": False
+                "total_records": total_records,
+                "duplicate_records": duplicate_records,
+                "duplicate_groups": duplicate_groups,
+                "duplicate_valid": duplicate_valid
             })
 
-            continue
+            print(
+                f"{duplicate_key:<35}"
+                f"Duplicate Records: {duplicate_records:<8}"
+                f"Duplicate Groups: {duplicate_groups:<8}"
+                f"Status: {'VALID' if duplicate_valid else 'INVALID'}"
+            )
 
-        duplicate_mask = df.duplicated(
-            subset=key_columns,
-            keep=False
-        )
-
-        duplicate_records = duplicate_mask.sum()
-
-        duplicate_groups = (
-            df.loc[duplicate_mask, key_columns]
-            .drop_duplicates()
-            .shape[0]
-        )
-
-        duplicate_valid = duplicate_records == 0
-
-        results.append({
-            "source_name": source_name,
-            "file_name": file_name,
-            "duplicate_key": duplicate_key,
-            "total_records": len(df),
-            "duplicate_records": duplicate_records,
-            "duplicate_groups": duplicate_groups,
-            "duplicate_valid": duplicate_valid
-        })
-
-        print(
-            f"Duplicate Key: {duplicate_key}"
-        )
-
-        print(
-            f"Total Records: {len(df)}"
-        )
-
-        print(
-            f"Duplicate Records: {duplicate_records}"
-        )
-
-        print(
-            f"Duplicate Groups: {duplicate_groups}"
-        )
-
-        print(
-            f"Status: {'VALID' if duplicate_valid else 'INVALID'}"
-        )
+    # ---------------------------------------------------------
+    # Write validation report
+    # ---------------------------------------------------------
 
     output = pd.DataFrame(results)
 
     output_path = Path("metadata")
-    output_path.mkdir(exist_ok=True)
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     output.to_csv(
         output_path / "duplicate_validation.csv",

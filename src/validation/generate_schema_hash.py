@@ -3,48 +3,166 @@ import pandas as pd
 from pathlib import Path
 
 
-DATASET_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\dataset")
-MANIFEST_PATH = Path(r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv")
+DATASET_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\dataset"
+)
+
+MANIFEST_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\config\file_manifest.csv"
+)
+
+ERROR_PATH = Path(
+    r"C:\Users\sayan\OneDrive\Documents\data-quality-etl\data\errors\schema"
+)
 
 
 def calculate_schema_hash(columns):
+
     schema = "|".join(columns)
-    return hashlib.sha256(schema.encode("utf-8")).hexdigest()
+
+    return hashlib.sha256(
+        schema.encode("utf-8")
+    ).hexdigest()
 
 
 def main():
-    manifest = pd.read_csv(MANIFEST_PATH)
+
+    manifest = pd.read_csv(
+        MANIFEST_PATH
+    )
 
     results = []
 
     for _, row in manifest.iterrows():
 
-        file_path = DATASET_PATH / row["file_pattern"]
+        source_name = row["source_name"]
+        file_name = row["file_pattern"]
+
+        file_path = DATASET_PATH / file_name
 
         file_arrival = file_path.exists()
 
         actual_hash = None
+        expected_hash = None
+
         schema_status = False
         file_size = 0
 
+        actual_columns = []
+        expected_columns = row[
+            "expected_schema"
+        ].split("|")
+
+        # -----------------------------------------------------
+        # File Arrival
+        # -----------------------------------------------------
+
         if file_arrival:
 
-            df = pd.read_csv(file_path, nrows=0)
+            df = pd.read_csv(
+                file_path,
+                nrows=0
+            )
 
-            actual_columns = list(df.columns)
-            expected_columns = row["expected_schema"].split("|")
+            actual_columns = list(
+                df.columns
+            )
 
-            actual_hash = calculate_schema_hash(actual_columns)
-            expected_hash = calculate_schema_hash(expected_columns)
+            actual_hash = calculate_schema_hash(
+                actual_columns
+            )
 
-            schema_status = actual_hash == expected_hash
+            expected_hash = calculate_schema_hash(
+                expected_columns
+            )
+
+            schema_status = (
+                actual_hash == expected_hash
+            )
 
             file_size = file_path.stat().st_size
 
+        # -----------------------------------------------------
+        # Extract schema error
+        # -----------------------------------------------------
+
+        if not file_arrival:
+
+            ERROR_PATH.mkdir(
+                parents=True,
+                exist_ok=True
+            )
+
+            error_file = (
+                ERROR_PATH
+                / f"{source_name}_schema_error.csv"
+            )
+
+            error_record = pd.DataFrame([{
+                "source_name": source_name,
+                "file_name": file_name,
+                "error_type": "FILE_NOT_FOUND",
+                "expected_schema": "|".join(
+                    expected_columns
+                ),
+                "actual_schema": "",
+                "expected_schema_hash": expected_hash,
+                "actual_schema_hash": actual_hash,
+                "file_size": file_size
+            }])
+
+            error_record.to_csv(
+                error_file,
+                index=False
+            )
+
+            print(
+                f"Schema error written: {error_file}"
+            )
+
+        elif not schema_status:
+
+            ERROR_PATH.mkdir(
+                parents=True,
+                exist_ok=True
+            )
+
+            error_file = (
+                ERROR_PATH
+                / f"{source_name}_schema_error.csv"
+            )
+
+            error_record = pd.DataFrame([{
+                "source_name": source_name,
+                "file_name": file_name,
+                "error_type": "SCHEMA_MISMATCH",
+                "expected_schema": "|".join(
+                    expected_columns
+                ),
+                "actual_schema": "|".join(
+                    actual_columns
+                ),
+                "expected_schema_hash": expected_hash,
+                "actual_schema_hash": actual_hash,
+                "file_size": file_size
+            }])
+
+            error_record.to_csv(
+                error_file,
+                index=False
+            )
+
+            print(
+                f"Schema error written: {error_file}"
+            )
+
+        # -----------------------------------------------------
+        # Validation result
+        # -----------------------------------------------------
 
         results.append({
-            "source_name": row["source_name"],
-            "file_name": row["file_pattern"],
+            "source_name": source_name,
+            "file_name": file_name,
             "schema_hash": actual_hash,
             "schema_valid": schema_status,
             "file_size": file_size,
@@ -52,30 +170,49 @@ def main():
         })
 
         if not file_arrival:
+
             schema_display = "NA"
+
         elif schema_status:
+
             schema_display = "VALID"
+
         else:
+
             schema_display = "INVALID"
 
         print(
-            f"{row['source_name']:<30}"
+            f"{source_name:<30}"
             f"\tFile Arrival: {file_arrival:<7} "
             f"\tSchema: {schema_display:<7} "
             f"\tFile size: {file_size}"
         )
 
-    output = pd.DataFrame(results)
+    # ---------------------------------------------------------
+    # Write validation report
+    # ---------------------------------------------------------
 
-    output_path = Path("metadata")
-    output_path.mkdir(exist_ok=True)
+    output = pd.DataFrame(
+        results
+    )
+
+    output_path = Path(
+        "metadata"
+    )
+
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     output.to_csv(
         output_path / "schema_validation.csv",
         index=False
     )
 
-    print("\nSchema validation report created.")
+    print(
+        "\nSchema validation report created."
+    )
 
 
 if __name__ == "__main__":
