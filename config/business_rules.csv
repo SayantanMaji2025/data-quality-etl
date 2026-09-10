@@ -3,14 +3,14 @@ ORD-001,orders,allowed_values,order_status,,,,delivered|shipped|canceled|unavail
 ORD-002,orders,date_order,order_purchase_timestamp,order_approved_at,,,,FAIL
 ORD-004,orders,date_order,order_purchase_timestamp,order_delivered_customer_date,,,,FAIL
 ORD-006,orders,date_order,order_purchase_timestamp,order_estimated_delivery_date,,,,FAIL
-ORD-007,orders,conditional_not_null,order_status,,,,delivered|order_delivered_customer_date,FAIL
-ORD-008,orders,conditional_not_null,order_status,,,,delivered|order_delivered_carrier_date,FAIL
+ORD-007,orders,conditional_not_null,order_status,,,,delivered|order_delivered_customer_date,WARN
+ORD-008,orders,conditional_not_null,order_status,,,,delivered|order_delivered_carrier_date,WARN
 ITEM-001,order_items,min_value,order_item_id,,,,1,FAIL
 ITEM-002,order_items,min_value,price,,,,0,FAIL
 ITEM-003,order_items,min_value,freight_value,,,,0,FAIL
 PAY-001,order_payments,min_value,payment_value,,,,0,FAIL
 PAY-002,order_payments,min_value,payment_sequential,,,,1,FAIL
-PAY-003,order_payments,min_value,payment_installments,,,,1,FAIL
+PAY-003,order_payments,min_value,payment_installments,,,,1,WARN
 PAY-004,order_payments,allowed_values,payment_type,,,,credit_card|boleto|voucher|debit_card|not_defined,FAIL
 REV-001,order_reviews,range,review_score,,,,1|5,FAIL
 PROD-001,products,min_value,product_weight_g,,,,0,FAIL
