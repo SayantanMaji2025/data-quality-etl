@@ -37,6 +37,8 @@ def main():
     print("=" * 80)
 
     pipeline_start = time.time()
+    completed_steps = 0
+    failed_steps = 0
 
     # ---------------------------------------------------------
     # Validation
@@ -75,6 +77,7 @@ def main():
         except Exception as error:
 
             elapsed = time.time() - step_start
+            completed_steps += 1
 
             print(
                 f"\nFAILED: {step_name}"
@@ -84,6 +87,7 @@ def main():
 
             print("\nETL pipeline stopped.")
 
+            failed_steps += 1
             return False
 
         elapsed = time.time() - step_start
@@ -103,6 +107,20 @@ def main():
     print("PIPELINE COMPLETED SUCCESSFULLY")
     print(f"Total execution time: {pipeline_elapsed:.2f} seconds")
     print("=" * 80)
+    pipeline_elapsed = time.time() - pipeline_start
+
+    print("\n" + "=" * 80)
+    print("PIPELINE SUMMARY")
+    print("=" * 80)
+    print(f"Validation:     {'PASS' if validation_passed else 'FAIL'}")
+    print(f"ETL Steps:      {len(ETL_STEPS)}")
+    print(f"Completed:      {completed_steps}")
+    print(f"Failed:         {failed_steps}")
+    print("Status:         SUCCESS")
+    print(f"Total time:     {pipeline_elapsed:.2f} seconds")
+    print("=" * 80)
+
+    return True
 
     return True
 

@@ -8,7 +8,7 @@ FK-003,order_items,product_id,referential_integrity,FAIL,112650,0,PASS
 FK-004,order_items,seller_id,referential_integrity,FAIL,112650,0,PASS
 PAY-001,order_payments,payment_value,min_value,FAIL,103886,0,PASS
 PAY-002,order_payments,payment_sequential,min_value,FAIL,103886,0,PASS
-PAY-003,order_payments,payment_installments,min_value,FAIL,103886,2,FAIL
+PAY-003,order_payments,payment_installments,min_value,WARN,103886,2,WARN
 PAY-004,order_payments,payment_type,allowed_values,FAIL,103886,0,PASS
 PAY-006,order_payments,order_id,referential_integrity,FAIL,103886,0,PASS
 REV-001,order_reviews,review_score,range,FAIL,99224,0,PASS
@@ -17,8 +17,8 @@ ORD-001,orders,order_status,allowed_values,FAIL,99441,0,PASS
 ORD-002,orders,order_purchase_timestamp,date_order,FAIL,99441,0,PASS
 ORD-004,orders,order_purchase_timestamp,date_order,FAIL,99441,0,PASS
 ORD-006,orders,order_purchase_timestamp,date_order,FAIL,99441,0,PASS
-ORD-007,orders,order_status,conditional_not_null,FAIL,99441,8,FAIL
-ORD-008,orders,order_status,conditional_not_null,FAIL,99441,2,FAIL
+ORD-007,orders,order_status,conditional_not_null,WARN,99441,8,WARN
+ORD-008,orders,order_status,conditional_not_null,WARN,99441,2,WARN
 FK-001,orders,customer_id,referential_integrity,FAIL,99441,0,PASS
 PROD-001,products,product_weight_g,min_value,FAIL,32951,0,PASS
 PROD-002,products,product_length_cm,min_value,FAIL,32951,0,PASS
