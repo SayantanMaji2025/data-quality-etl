@@ -1,6 +1,9 @@
 import sys
 import time
 from pathlib import Path
+from datetime import datetime
+
+from run_logger import log_pipeline_run
 
 
 # Allow imports from src/validation
@@ -8,7 +11,7 @@ sys.path.append(
     str(Path(__file__).resolve().parents[1] / "validation")
 )
 
-from run_validation import main as run_validation
+from run_validation import main as run_validation_pipeline
 
 from customer_etl import main as run_customer_etl
 from order_etl import main as run_order_etl
@@ -36,7 +39,9 @@ def main():
     print("DATA QUALITY ETL PIPELINE")
     print("=" * 80)
 
+    pipeline_start_datetime = datetime.now()
     pipeline_start = time.time()
+
     completed_steps = 0
     failed_steps = 0
 
@@ -48,9 +53,21 @@ def main():
     print("Starting: Data Validation")
     print("-" * 80)
 
-    validation_passed = run_validation()
+    validation_passed = run_validation_pipeline()
 
     if not validation_passed:
+
+        end_time = datetime.now()
+
+        log_pipeline_run(
+            start_time=pipeline_start_datetime,
+            end_time=end_time,
+            validation_status="FAIL",
+            etl_steps=len(ETL_STEPS),
+            completed_steps=0,
+            failed_steps=0,
+            status="VALIDATION_FAILED"
+        )
 
         print("\nETL pipeline stopped because validation failed.")
 
@@ -74,10 +91,13 @@ def main():
 
             etl_function()
 
+            completed_steps += 1
+
         except Exception as error:
 
             elapsed = time.time() - step_start
-            completed_steps += 1
+
+            failed_steps += 1
 
             print(
                 f"\nFAILED: {step_name}"
@@ -87,7 +107,18 @@ def main():
 
             print("\nETL pipeline stopped.")
 
-            failed_steps += 1
+            end_time = datetime.now()
+
+            log_pipeline_run(
+                start_time=pipeline_start_datetime,
+                end_time=end_time,
+                validation_status="PASS",
+                etl_steps=len(ETL_STEPS),
+                completed_steps=completed_steps,
+                failed_steps=failed_steps,
+                status="ETL_FAILED"
+            )
+
             return False
 
         elapsed = time.time() - step_start
@@ -98,15 +129,9 @@ def main():
         )
 
     # ---------------------------------------------------------
-    # Pipeline completion
+    # Pipeline Summary
     # ---------------------------------------------------------
 
-    pipeline_elapsed = time.time() - pipeline_start
-
-    print("\n" + "=" * 80)
-    print("PIPELINE COMPLETED SUCCESSFULLY")
-    print(f"Total execution time: {pipeline_elapsed:.2f} seconds")
-    print("=" * 80)
     pipeline_elapsed = time.time() - pipeline_start
 
     print("\n" + "=" * 80)
@@ -120,7 +145,21 @@ def main():
     print(f"Total time:     {pipeline_elapsed:.2f} seconds")
     print("=" * 80)
 
-    return True
+    # ---------------------------------------------------------
+    # Run Logging
+    # ---------------------------------------------------------
+
+    end_time = datetime.now()
+
+    log_pipeline_run(
+        start_time=pipeline_start_datetime,
+        end_time=end_time,
+        validation_status="PASS",
+        etl_steps=len(ETL_STEPS),
+        completed_steps=completed_steps,
+        failed_steps=failed_steps,
+        status="SUCCESS"
+    )
 
     return True
 
