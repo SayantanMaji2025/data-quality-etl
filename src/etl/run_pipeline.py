@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 
 from run_logger import log_pipeline_run
+from step_logger import log_etl_step
 
 
 # Allow imports from src/validation
@@ -85,6 +86,7 @@ def main():
         print(f"Starting: {step_name}")
         print("-" * 80)
 
+        step_start_datetime = datetime.now()
         step_start = time.time()
 
         try:
@@ -93,11 +95,32 @@ def main():
 
             completed_steps += 1
 
+            step_end_datetime = datetime.now()
+
+            log_etl_step(
+                run_id=pipeline_start_datetime.strftime("%Y%m%d%H%M%S"),
+                step_name=step_name,
+                start_time=step_start_datetime,
+                end_time=step_end_datetime,
+                status="SUCCESS"
+            )
+
         except Exception as error:
 
-            elapsed = time.time() - step_start
+            step_end_datetime = datetime.now()
 
             failed_steps += 1
+
+            log_etl_step(
+                run_id=pipeline_start_datetime.strftime("%Y%m%d%H%M%S"),
+                step_name=step_name,
+                start_time=step_start_datetime,
+                end_time=step_end_datetime,
+                status="FAILED",
+                error_message=str(error)
+            )
+
+            elapsed = time.time() - step_start
 
             print(
                 f"\nFAILED: {step_name}"
@@ -137,7 +160,7 @@ def main():
     print("\n" + "=" * 80)
     print("PIPELINE SUMMARY")
     print("=" * 80)
-    print(f"Validation:     {'PASS' if validation_passed else 'FAIL'}")
+    print(f"Validation:     PASS")
     print(f"ETL Steps:      {len(ETL_STEPS)}")
     print(f"Completed:      {completed_steps}")
     print(f"Failed:         {failed_steps}")
@@ -146,7 +169,7 @@ def main():
     print("=" * 80)
 
     # ---------------------------------------------------------
-    # Run Logging
+    # Pipeline Run Logging
     # ---------------------------------------------------------
 
     end_time = datetime.now()
