@@ -1585,6 +1585,4 @@ The implementation demonstrates the core principles required for a production-or
 
 # License
 
-This project is intended for learning, portfolio, and interview preparation purposes.
-
 The underlying Olist dataset is provided by its original publisher under its applicable dataset terms.
