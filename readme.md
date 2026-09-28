@@ -1,8 +1,17 @@
 # Data Quality & ETL Pipeline
 
-A configuration-driven data quality and ETL pipeline built with Python and Pandas using the Brazilian E-Commerce Public Dataset by Olist.
+A validation-first ETL framework in Python. Source data passes through five
+config-driven validation layers and a severity-aware quality gate before any
+transformation runs. Failing data never reaches the curated layer.
 
-The project follows a **validation-first architecture**, where source data is validated against configurable quality rules before the ETL layer is allowed to execute.
+| | |
+|---|---|
+| Dataset | Olist Brazilian E-Commerce (9 source files, ~100K orders) |
+| Validation layers | Schema, datatype, null, duplicate, business rules |
+| Rule types | allowed_values, min_value, range, date_order, conditional_not_null, referential_integrity |
+| Output | 7 curated tables (3 dimensions, 4 facts) |
+| Observability | Run-level and step-level execution logs |
+| Stack | Python, Pandas, Git |
 
 ---
 
